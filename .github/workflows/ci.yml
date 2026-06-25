@@ -21,4 +21,6 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - name: Red-team regression (EchoTarget baseline)
-        run: PYTHONPATH=src python -m airte.redteam.harness --suite all --format json
+        # EchoTarget is intentionally vulnerable; record the baseline ASR without
+        # failing the job (gate real targets in your own pipeline instead).
+        run: PYTHONPATH=src python -m airte.redteam.harness --suite all --format json --fail-on-asr 1.0
