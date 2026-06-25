@@ -57,3 +57,19 @@ def cases() -> list[AttackCase]:
             description="Homoglyph/fullwidth characters evade exact-match filters.",
         ),
     ]
+
+
+# IDs that exercise the model directly (attacker == user) vs. indirectly
+# (payload arrives via retrieved/3rd-party content the model reads).
+_DIRECT_IDS = {"PI-001", "PI-002", "PI-004", "PI-005"}
+_INDIRECT_IDS = {"PI-003"}
+
+
+def direct_cases() -> list[AttackCase]:
+    """ATLAS AML.T0051.000 — LLM Prompt Injection (Direct)."""
+    return [c for c in cases() if c.id in _DIRECT_IDS]
+
+
+def indirect_cases() -> list[AttackCase]:
+    """ATLAS AML.T0051.001 — LLM Prompt Injection (Indirect)."""
+    return [c for c in cases() if c.id in _INDIRECT_IDS]

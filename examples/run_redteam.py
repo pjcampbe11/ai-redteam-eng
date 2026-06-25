@@ -24,13 +24,17 @@ def _auto_provider() -> str:
         return "openai"
     if os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_PROFILE"):
         return "bedrock"
+    if os.environ.get("AZURE_OPENAI_ENDPOINT"):
+        return "azure"
+    if os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        return "vertex"
     return "echo"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", default=None,
-                    help="echo|anthropic|openai|bedrock (default: auto-detect)")
+                    help="echo|anthropic|openai|bedrock|azure|vertex (auto-detect)")
     ap.add_argument("--model", default=None)
     ap.add_argument("--suite", default="all")
     args = ap.parse_args()

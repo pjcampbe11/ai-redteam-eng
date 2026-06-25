@@ -75,6 +75,10 @@ naming), seeds taint from handler parameters, propagates through assignments and
 f-strings, and reports when tainted data reaches a sink. See
 `examples/vulnerable_mcp_server.py` for a labeled corpus of each bug class.
 
+The scanner emits **SARIF 2.1.0** (`--format sarif`) for GitHub code scanning, and
+ships as a `pre-commit` hook (`airte-mcp-scan`) so the audit runs on every commit
+touching Python files.
+
 Beyond static analysis, an audit also checks: Does the server authenticate the
 caller? Are tools authorized per-principal? Are tool descriptions free of embedded
 instructions? Is outbound network access allow-listed? Are secrets read from a

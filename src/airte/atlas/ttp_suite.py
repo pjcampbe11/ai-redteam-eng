@@ -27,6 +27,7 @@ class ATLASTechnique:
     owasp_llm: str
     description: str
     case_factory: object = None        # callable returning list[AttackCase] | None
+    parent: str | None = None          # parent technique id for sub-techniques
 
 
 # Curated subset of ATLAS techniques most relevant to LLM/agent dependencies.
@@ -35,6 +36,14 @@ ATLAS_TTPS: list[ATLASTechnique] = [
         "AML.T0051", "LLM Prompt Injection", "Initial Access / Execution",
         "LLM01", "Attacker crafts input that subverts the model's instructions.",
         prompt_injection.cases),
+    ATLASTechnique(
+        "AML.T0051.000", "LLM Prompt Injection: Direct", "Initial Access / Execution",
+        "LLM01", "Payload supplied directly by the user/attacker in the prompt.",
+        prompt_injection.direct_cases, parent="AML.T0051"),
+    ATLASTechnique(
+        "AML.T0051.001", "LLM Prompt Injection: Indirect", "Initial Access / Execution",
+        "LLM01", "Payload hidden in retrieved/3rd-party content the model ingests.",
+        prompt_injection.indirect_cases, parent="AML.T0051"),
     ATLASTechnique(
         "AML.T0054", "LLM Jailbreak", "Defense Evasion",
         "LLM01", "Bypassing safety/policy guardrails via crafted prompts.",

@@ -107,3 +107,43 @@ def audit_model_card(card: dict) -> list[ModelFinding]:
             "license", "missing license", "LOW",
             "Record and review the model license before use."))
     return findings
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI: audit a requirements file (and optionally a model card JSON).
+
+    Exit non-zero if any HIGH+ finding is present (CI / pre-commit gate).
+    """
+    import argparse
+    import json as _json
+    ap = argparse.ArgumentParser(
+        prog="airte-supply-audit",
+        description="Audit dependencies + model cards for supply-chain risk (LLM03).")
+    ap.add_argument("requirements", nargs="*", default=["requirements.txt"],
+                    help="requirements.txt file(s) to audit")
+    ap.add_argument("--model-card", help="path to a model card JSON to audit")
+    ap.add_argument("--fail-on", default="HIGH", choices=["LOW", "MEDIUM", "HIGH"])
+    args = ap.parse_args(argv)
+
+    report = SupplyChainReport()
+    for path in args.requirements:
+        try:
+            report.dependency_findings.extend(
+                audit_requirements(open(path, encoding="utf-8").read()))
+        except FileNotFoundError:
+            continue
+    if args.model_card:
+        report.model_findings.extend(
+            audit_model_card(_json.load(open(args.model_card, encoding="utf-8"))))
+
+    print(report.summary())
+    order = {"LOW": 1, "MEDIUM": 2, "HIGH": 3}
+    gate = order[args.fail_on]
+    worst = max((order.get(f.severity, 1)
+                 for f in report.dependency_findings + report.model_findings),
+                default=0)
+    return 1 if worst >= gate else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

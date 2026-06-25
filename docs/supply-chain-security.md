@@ -60,6 +60,10 @@ python -m airte.supply_chain.aibom --name my-app --version 1.0 \
 Models without an immutable digest are tagged with an `ai:provenance` warning
 property so the gap is visible in the BOM.
 
+Run the audit on every commit with the bundled `pre-commit` hook
+(`airte-supply-audit`), which blocks commits that introduce unpinned or URL/VCS
+dependencies.
+
 Combine the static audit (artifacts), the AI-BOM (inventory), the behavioral suite
 (runtime), and data signing (integrity) for layered coverage across the whole
 dependency chain.

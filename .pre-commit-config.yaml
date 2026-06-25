@@ -1,0 +1,8 @@
+# Example: enable ai-redteam-eng security hooks in your own repository.
+# Install: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/pjcampbe11/ai-redteam-eng
+    rev: v0.3.0            # pin to a released tag
+    hooks:
+      - id: airte-mcp-scan
+      - id: airte-supply-audit

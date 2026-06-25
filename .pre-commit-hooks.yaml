@@ -1,0 +1,16 @@
+- id: airte-mcp-scan
+  name: airte MCP injection scan
+  description: Static taint-analysis of MCP server code for injection sinks.
+  entry: airte-scan
+  language: python
+  types: [python]
+  args: ["--fail-on", "HIGH"]
+  pass_filenames: true
+
+- id: airte-supply-audit
+  name: airte supply-chain audit
+  description: Flag unpinned/URL deps and unverified model artifacts (OWASP LLM03).
+  entry: airte-supply-audit
+  language: python
+  files: '(^|/)requirements[^/]*\.txt$'
+  pass_filenames: true

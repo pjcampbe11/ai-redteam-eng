@@ -223,11 +223,69 @@ def _render_text(findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
+_SARIF_LEVEL = {"CRITICAL": "error", "HIGH": "error", "MEDIUM": "warning",
+                "LOW": "note", "INFO": "note"}
+
+
+def _render_sarif(findings: list[Finding]) -> str:
+    """Render findings as SARIF 2.1.0 for GitHub code scanning / CI integration."""
+    # one rule per distinct rule_id encountered
+    rules: dict[str, dict] = {}
+    results = []
+    for f in findings:
+        if f.rule_id not in rules:
+            rules[f.rule_id] = {
+                "id": f.rule_id,
+                "name": f.title.replace(" ", ""),
+                "shortDescription": {"text": f.title},
+                "fullDescription": {"text": f.remediation or f.title},
+                "helpUri": "https://cwe.mitre.org/data/definitions/"
+                           + f.cwe.replace("CWE-", "") + ".html",
+                "defaultConfiguration": {
+                    "level": _SARIF_LEVEL.get(f.severity, "warning")},
+                "properties": {"tags": ["security", f.cwe],
+                               "security-severity": {
+                                   "CRITICAL": "9.5", "HIGH": "8.0",
+                                   "MEDIUM": "5.0", "LOW": "3.0",
+                                   "INFO": "1.0"}.get(f.severity, "5.0")},
+            }
+        results.append({
+            "ruleId": f.rule_id,
+            "level": _SARIF_LEVEL.get(f.severity, "warning"),
+            "message": {"text": f"{f.title}. Tainted source: handler arg "
+                                f"'{f.tainted_arg}'. {f.remediation}"
+                                if f.tainted_arg else
+                                f"{f.title}. {f.remediation}"},
+            "locations": [{
+                "physicalLocation": {
+                    "artifactLocation": {"uri": f.file},
+                    "region": {"startLine": max(f.line, 1),
+                               "startColumn": max(f.col + 1, 1),
+                               "snippet": {"text": f.snippet}},
+                }}],
+        })
+    sarif = {
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/"
+                   "master/Schemata/sarif-schema-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {
+                "name": "airte-mcp-audit",
+                "informationUri": "https://github.com/pjcampbe11/ai-redteam-eng",
+                "version": "0.1.0",
+                "rules": list(rules.values()),
+            }},
+            "results": results,
+        }],
+    }
+    return json.dumps(sarif, indent=2)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="airte-scan",
                                  description="Audit MCP server code for injection sinks reachable from tool input.")
     ap.add_argument("target", help="Python file or directory to scan")
-    ap.add_argument("--format", choices=["text", "json"], default="text")
+    ap.add_argument("--format", choices=["text", "json", "sarif"], default="text")
     ap.add_argument("--min-severity", default="INFO",
                     choices=[s.name for s in Severity])
     ap.add_argument("--fail-on", default="HIGH",
@@ -238,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
     findings = scan_path(args.target, Severity[args.min_severity])
     if args.format == "json":
         print(json.dumps([f.to_dict() for f in findings], indent=2))
+    elif args.format == "sarif":
+        print(_render_sarif(findings))
     else:
         print(_render_text(findings))
 

@@ -23,6 +23,8 @@ OWASP LLM Top 10. Coverage spans eight tactics from Reconnaissance through Impac
 | ATLAS ID    | Technique                        | Tactic              | OWASP | Cases |
 |-------------|----------------------------------|---------------------|-------|-------|
 | AML.T0051   | LLM Prompt Injection             | Initial Access/Exec | LLM01 | yes   |
+| ├ .000      | Prompt Injection: Direct         | Initial Access/Exec | LLM01 | yes   |
+| └ .001      | Prompt Injection: Indirect       | Initial Access/Exec | LLM01 | yes   |
 | AML.T0054   | LLM Jailbreak                    | Defense Evasion     | LLM01 | yes   |
 | AML.T0020   | Poison Training/Index Data       | Resource Dev        | LLM04 | yes   |
 | AML.T0056   | Extract LLM System Prompt        | Exfiltration        | LLM07 | yes   |
@@ -57,7 +59,11 @@ python -m airte.atlas.ttp_suite      # prints coverage report
 - **Cover the whole chain.** Don't only test serving-time injection; add poisoning
   (data/index) and extraction (API) cases so you cover Resource Development and
   Exfiltration tactics, not just Initial Access.
-- **All eight techniques ship runnable cases.** Prompt-level suites live in
+- **Sub-technique granularity.** Prompt injection is split into Direct
+  (`AML.T0051.000`) and Indirect (`AML.T0051.001`) via
+  `prompt_injection.direct_cases()` / `indirect_cases()`, so you can report
+  coverage at sub-technique resolution.
+- **All techniques ship runnable cases.** Prompt-level suites live in
   `airte.redteam` (`unbounded_consumption`, `supply_chain`, `model_inversion` were
   added to complete coverage); artifact-level supply-chain auditing lives in
   `airte.supply_chain`. Extend each with environment-specific cases.

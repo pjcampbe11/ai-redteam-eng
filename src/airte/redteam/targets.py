@@ -82,10 +82,64 @@ class BedrockTarget(GuardedTarget):  # pragma: no cover - needs boto3 + creds
         return resp["output"]["message"]["content"][0]["text"]
 
 
+class AzureOpenAITarget(GuardedTarget):  # pragma: no cover - needs SDK + creds
+    """Azure OpenAI via the openai SDK's AzureOpenAI client.
+
+    Reads AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY from the environment;
+    ``model`` is the *deployment* name in your Azure resource.
+    """
+    def __init__(self, model: str = "gpt-4o", api_version: str = "2024-06-01",
+                 max_tokens: int = 512):
+        super().__init__(model=model, max_tokens=max_tokens)
+        self.api_version = api_version
+
+    def _complete(self, system: str, prompt: str) -> str:
+        import os
+        from openai import AzureOpenAI
+        client = AzureOpenAI(
+            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+            api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
+            api_version=self.api_version)
+        resp = client.chat.completions.create(
+            model=self.model, max_tokens=self.max_tokens,
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": prompt}])
+        return resp.choices[0].message.content or ""
+
+
+class VertexTarget(GuardedTarget):  # pragma: no cover - needs SDK + creds
+    """Google Vertex AI (Gemini) via the google-cloud-aiplatform SDK.
+
+    Uses application-default credentials / workload identity. Reads project and
+    location from GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_REGION if not passed.
+    """
+    def __init__(self, model: str = "gemini-1.5-pro",
+                 project: str | None = None, location: str | None = None,
+                 max_tokens: int = 512):
+        super().__init__(model=model, max_tokens=max_tokens)
+        self.project = project
+        self.location = location
+
+    def _complete(self, system: str, prompt: str) -> str:
+        import os
+        import vertexai
+        from vertexai.generative_models import GenerativeModel
+        vertexai.init(
+            project=self.project or os.environ.get("GOOGLE_CLOUD_PROJECT"),
+            location=self.location or os.environ.get("GOOGLE_CLOUD_REGION", "us-central1"))
+        model = GenerativeModel(self.model, system_instruction=system)
+        resp = model.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": self.max_tokens})
+        return resp.text
+
+
 _DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
     "bedrock": "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    "azure": "gpt-4o",
+    "vertex": "gemini-1.5-pro",
 }
 
 
@@ -100,5 +154,9 @@ def build_target(provider: str, model: str | None = None):
         return OpenAITarget(model or _DEFAULT_MODELS["openai"])
     if provider == "bedrock":
         return BedrockTarget(model or _DEFAULT_MODELS["bedrock"])
+    if provider in ("azure", "azure-openai", "azure_openai"):
+        return AzureOpenAITarget(model or _DEFAULT_MODELS["azure"])
+    if provider == "vertex":
+        return VertexTarget(model or _DEFAULT_MODELS["vertex"])
     raise ValueError(f"unknown provider '{provider}'. "
-                     "choose echo|anthropic|openai|bedrock")
+                     "choose echo|anthropic|openai|bedrock|azure|vertex")
