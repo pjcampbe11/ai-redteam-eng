@@ -1,0 +1,16 @@
+# Core library is dependency-free (Python 3.10+ standard library only).
+# The extras below enable optional integrations and are NOT required to run
+# the core scanner, red-team harness, or guardrail engine.
+
+# --- optional: live LLM red-teaming ---
+# anthropic>=0.39.0
+# openai>=1.40.0
+
+# --- optional: MCP server example (stdio transport) ---
+# mcp>=1.2.0
+
+# --- optional: PII / DLP detection with ML models ---
+# presidio-analyzer>=2.2.0
+
+# --- dev / test ---
+pytest>=8.0.0
