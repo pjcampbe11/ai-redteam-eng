@@ -25,6 +25,10 @@ build rules:
 Breaking is structured, repeatable, and measured — not ad-hoc poking. Use a harness
 that runs attack suites and scores an **attack-success-rate (ASR)**.
 
+Live targets ship for Anthropic, OpenAI, Bedrock, Azure OpenAI, Vertex, Mistral,
+Cohere, and Ollama (`airte.redteam.build_target`), each guarded with input
+injection heuristics and output redaction.
+
 ```python
 from airte.redteam import RedTeamHarness
 

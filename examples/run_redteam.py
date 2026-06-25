@@ -28,13 +28,19 @@ def _auto_provider() -> str:
         return "azure"
     if os.environ.get("GOOGLE_CLOUD_PROJECT"):
         return "vertex"
+    if os.environ.get("MISTRAL_API_KEY"):
+        return "mistral"
+    if os.environ.get("CO_API_KEY"):
+        return "cohere"
+    if os.environ.get("OLLAMA_HOST"):
+        return "ollama"
     return "echo"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", default=None,
-                    help="echo|anthropic|openai|bedrock|azure|vertex (auto-detect)")
+                    help="echo|anthropic|openai|bedrock|azure|vertex|mistral|cohere|ollama")
     ap.add_argument("--model", default=None)
     ap.add_argument("--suite", default="all")
     args = ap.parse_args()

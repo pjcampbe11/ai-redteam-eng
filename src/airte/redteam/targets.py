@@ -134,12 +134,66 @@ class VertexTarget(GuardedTarget):  # pragma: no cover - needs SDK + creds
         return resp.text
 
 
+class MistralTarget(GuardedTarget):  # pragma: no cover - needs SDK + key
+    """Mistral AI via the mistralai SDK. Reads MISTRAL_API_KEY."""
+    def _complete(self, system: str, prompt: str) -> str:
+        from mistralai import Mistral
+        import os
+        client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
+        resp = client.chat.complete(
+            model=self.model, max_tokens=self.max_tokens,
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": prompt}])
+        return resp.choices[0].message.content or ""
+
+
+class CohereTarget(GuardedTarget):  # pragma: no cover - needs SDK + key
+    """Cohere via the cohere SDK (Chat v2). Reads CO_API_KEY."""
+    def _complete(self, system: str, prompt: str) -> str:
+        import cohere
+        client = cohere.ClientV2()               # reads CO_API_KEY
+        resp = client.chat(
+            model=self.model, max_tokens=self.max_tokens,
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": prompt}])
+        return "".join(part.text for part in resp.message.content
+                       if getattr(part, "type", "") == "text")
+
+
+class OllamaTarget(GuardedTarget):  # pragma: no cover - needs local Ollama
+    """Local models via Ollama's HTTP API (no API key; default localhost:11434).
+
+    Uses only the standard library so no extra dependency is required.
+    """
+    def __init__(self, model: str = "llama3.1",
+                 host: str = "http://localhost:11434", max_tokens: int = 512):
+        super().__init__(model=model, max_tokens=max_tokens)
+        self.host = host
+
+    def _complete(self, system: str, prompt: str) -> str:
+        import json as _json
+        import urllib.request
+        payload = _json.dumps({
+            "model": self.model, "stream": False,
+            "system": system, "prompt": prompt,
+            "options": {"num_predict": self.max_tokens},
+        }).encode()
+        req = urllib.request.Request(
+            f"{self.host}/api/generate", data=payload,
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return _json.loads(r.read()).get("response", "")
+
+
 _DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
     "bedrock": "anthropic.claude-3-5-sonnet-20240620-v1:0",
     "azure": "gpt-4o",
     "vertex": "gemini-1.5-pro",
+    "mistral": "mistral-large-latest",
+    "cohere": "command-r-plus",
+    "ollama": "llama3.1",
 }
 
 
@@ -158,5 +212,11 @@ def build_target(provider: str, model: str | None = None):
         return AzureOpenAITarget(model or _DEFAULT_MODELS["azure"])
     if provider == "vertex":
         return VertexTarget(model or _DEFAULT_MODELS["vertex"])
-    raise ValueError(f"unknown provider '{provider}'. "
-                     "choose echo|anthropic|openai|bedrock|azure|vertex")
+    if provider == "mistral":
+        return MistralTarget(model or _DEFAULT_MODELS["mistral"])
+    if provider == "cohere":
+        return CohereTarget(model or _DEFAULT_MODELS["cohere"])
+    if provider == "ollama":
+        return OllamaTarget(model or _DEFAULT_MODELS["ollama"])
+    raise ValueError(f"unknown provider '{provider}'. choose echo|anthropic|"
+                     "openai|bedrock|azure|vertex|mistral|cohere|ollama")

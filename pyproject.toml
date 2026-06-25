@@ -20,6 +20,7 @@ airte-scan = "airte.mcp_audit.scanner:main"
 airte-redteam = "airte.redteam.harness:main"
 airte-supply-audit = "airte.supply_chain.auditor:main"
 airte-aibom = "airte.supply_chain.aibom:main"
+airte-vex = "airte.supply_chain.vex:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

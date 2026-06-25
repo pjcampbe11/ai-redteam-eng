@@ -64,6 +64,15 @@ Run the audit on every commit with the bundled `pre-commit` hook
 (`airte-supply-audit`), which blocks commits that introduce unpinned or URL/VCS
 dependencies.
 
-Combine the static audit (artifacts), the AI-BOM (inventory), the behavioral suite
-(runtime), and data signing (integrity) for layered coverage across the whole
-dependency chain.
+## VEX: is it actually exploitable?
+
+Attach a **CycloneDX VEX** layer (`airte.supply_chain.vex`) to the AI-BOM to state,
+per advisory, whether each component is exploitable in *your* product
+(`not_affected` + justification, `exploitable`, `in_triage`, `false_positive`, …).
+Affected refs are validated against the BOM so statements can't dangle, and
+`exploitable()` filters to the statements that actually need action. This is what
+lets a security team triage a flood of dependency CVEs down to the few that matter.
+
+Combine the static audit (artifacts), the AI-BOM (inventory), the VEX layer
+(exploitability), the behavioral suite (runtime), and data signing (integrity) for
+layered coverage across the whole dependency chain.
