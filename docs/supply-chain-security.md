@@ -44,5 +44,22 @@ model = audit_model_card({"name": "clf", "source": "hub", "sha256": "...",
 assert not deps and not model, "supply-chain audit failed"
 ```
 
-Combine the static audit (artifacts) with the behavioral suite (runtime) and data
-signing (integrity) for layered coverage across the whole dependency chain.
+## AI Bill of Materials (AI-BOM)
+
+Export a **CycloneDX 1.6** AI-BOM that inventories both software dependencies and
+ML models (as `machine-learning-model` components with modelCards, hashes, and
+provenance properties). Feed it to SCA/vulnerability tooling and attach it to
+releases so consumers can audit your AI supply chain.
+
+```bash
+python -m airte.supply_chain.aibom --name my-app --version 1.0 \
+  --requirements requirements.txt \
+  --model "clf:1.0:hf:<sha256>:apache-2.0" -o aibom.json
+```
+
+Models without an immutable digest are tagged with an `ai:provenance` warning
+property so the gap is visible in the BOM.
+
+Combine the static audit (artifacts), the AI-BOM (inventory), the behavioral suite
+(runtime), and data signing (integrity) for layered coverage across the whole
+dependency chain.

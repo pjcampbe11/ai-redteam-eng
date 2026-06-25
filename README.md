@@ -8,7 +8,7 @@
 
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Tests](https://img.shields.io/badge/tests-33%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-42%20passing-brightgreen)
 ![Dependencies](https://img.shields.io/badge/core-dependency--free-success)
 ![OWASP](https://img.shields.io/badge/OWASP-LLM%20Top%2010%20(2025)-orange)
 ![MITRE ATLAS](https://img.shields.io/badge/MITRE-ATLAS%20TTPs-red)
@@ -77,12 +77,12 @@ detection heuristics that get bypassed.
 |------------|--------------|
 | 🔍 **MCP audit scanner** | AST taint-analysis that flags injection sinks (RCE, eval, deserialization, path traversal, SSRF, SQLi, SSTI) reachable from MCP tool input |
 | 🧱 **Hardened MCP server** | Reference registry enforcing authN → authZ → rate limit → input validation → output redaction → audit, plus a sandboxed executor |
-| ⚔️ **Red-team harness** | 7 adversarial suites (injection, jailbreak, poisoning, extraction, unbounded-consumption, supply-chain, inversion) with attack-success-rate scoring |
+| ⚔️ **Red-team harness** | 9 adversarial suites (injection, jailbreak, poisoning, extraction, unbounded-consumption, supply-chain, inversion, reconnaissance, attack-staging) with attack-success-rate scoring, runnable against Anthropic/OpenAI/Bedrock |
 | 🛡️ **Runtime guardrails** | Input injection heuristics, output secret/PII redaction, RAG fencing/quarantine, agent scoped-permissions + HITL + budgets, token/cost caps |
 | ☁️ **Cloud security** | Vault-backed secrets (AWS/Azure/GCP), API-gateway policy, identity-aware proxy, Terraform reference |
-| 📦 **Supply-chain auditing** | Dependency-pinning and model-provenance checks; HMAC data integrity |
-| 🗂️ **DLP & least privilege** | Sensitive-data detection/redaction and per-user data-access scoping |
-| 🎯 **MITRE ATLAS mapping** | All 8 covered techniques mapped to runnable cases and the OWASP LLM Top 10 |
+| 📦 **Supply-chain auditing** | Dependency-pinning and model-provenance checks; CycloneDX **AI-BOM** export; HMAC data integrity |
+| 🗂️ **DLP & least privilege** | Sensitive-data detection/redaction (regex or optional **Presidio** ML backend) and per-user data-access scoping |
+| 🎯 **MITRE ATLAS mapping** | 10 techniques across 8 tactics (incl. Reconnaissance & ML Attack Staging) mapped to runnable cases and the OWASP LLM Top 10 |
 
 ---
 
@@ -124,11 +124,11 @@ ai-redteam-eng/
 ├── src/airte/
 │   ├── mcp_audit/                  AST scanner for MCP server code (taint → sink)
 │   ├── secure_mcp_server/          hardened MCP server + sandboxed executor
-│   ├── redteam/                    7 adversarial suites + pluggable harness
+│   ├── redteam/                    9 adversarial suites + harness + live targets
 │   ├── guardrails/                 input/output/agent/RAG guardrails + cost budget
 │   ├── cloud/                      secrets (AWS/Azure/GCP), API gateway, IAP
 │   ├── data_pipeline/              DLP + least-privilege + data provenance
-│   ├── supply_chain/               dependency + model-card auditing (LLM03)
+│   ├── supply_chain/               dependency + model-card auditing + AI-BOM (LLM03)
 │   └── atlas/                      MITRE ATLAS TTP suite + OWASP mapping
 ├── examples/                       vulnerable server, live red-team, audits
 ├── iac/terraform/aws-ai-gateway/   secure-by-default cloud reference (Terraform)
@@ -148,14 +148,15 @@ python -m pip install -e ".[dev]"          # core is dependency-free; this adds 
 # 1) Audit an MCP server for injection sinks reachable from tool input
 python -m airte.mcp_audit.scanner examples/vulnerable_mcp_server.py --fail-on HIGH
 
-# 2) Red-team a target (built-in EchoTarget demo) → attack-success-rate
+# 2) Red-team a target (EchoTarget demo, or a live model) → attack-success-rate
 python -m airte.redteam.harness --suite all
+python examples/run_redteam.py --provider openai   # or anthropic | bedrock
 
 # 3) See MITRE ATLAS coverage of the bundled adversarial cases
 python -m airte.atlas.ttp_suite
 
 # 4) Audit your supply chain
-python -m pytest -q                         # 33 tests, no network, no API keys
+python -m pytest -q                         # 42 tests, no network, no API keys
 ```
 
 > The core library imports nothing outside the Python 3.10+ standard library, so the
@@ -440,7 +441,7 @@ or if tool descriptions carry embedded instructions.
 
 Organizing your adversarial suite by **MITRE ATLAS** tactic makes coverage gaps
 visible. `airte.atlas.ttp_suite` maps techniques to runnable `airte.redteam` cases and
-to the OWASP LLM Top 10. **All eight covered techniques ship runnable cases:**
+to the OWASP LLM Top 10. **All ten covered techniques (across 8 tactics) ship runnable cases:**
 
 | ATLAS ID | Technique | Tactic | OWASP | Cases |
 |----------|-----------|--------|-------|-------|
@@ -452,6 +453,8 @@ to the OWASP LLM Top 10. **All eight covered techniques ship runnable cases:**
 | AML.T0048 | Model Inversion Harm | Impact | LLM02 | ✓ |
 | AML.T0029 | Denial of ML Service | Impact | LLM10 | ✓ |
 | AML.T0018 | Manipulate AI Model (supply) | Persistence | LLM03 | ✓ |
+| AML.T0040 | Discover AI Model / Tooling | Reconnaissance | LLM07 | ✓ |
+| AML.T0043 | Craft Adversarial Data / Stage Attack | ML Attack Staging | LLM01 | ✓ |
 
 ```bash
 python -m airte.atlas.ttp_suite        # coverage report
@@ -478,6 +481,8 @@ from airte.data_pipeline import DLPEngine, DataScope, evaluate_access, Classific
 from airte.data_pipeline.least_privilege import AccessRequest
 
 DLPEngine().redact("contact a@b.com, AKIA....")        # → "[REDACTED:email], [REDACTED:aws_key]"
+# Optional: ML/NLP-backed detection (names, locations) via Microsoft Presidio:
+# DLPEngine(analyzer=get_analyzer("auto"))   # uses Presidio if installed, else regex
 
 scope = DataScope(tenants=frozenset({"acme"}),
                   max_classification=Classification.CONFIDENTIAL,
@@ -508,6 +513,15 @@ license) · prefer `safetensors` over pickle · sign & verify data
 (`airte.data_pipeline.provenance`) · run the behavioral backdoor probe
 (`airte.redteam.supply_chain`) · vet MCP servers & plugins.
 
+Export a **CycloneDX 1.6 AI-BOM** (software deps + ML-model components with
+modelCards) for vulnerability/license tracking across the AI supply chain:
+
+```bash
+python -m airte.supply_chain.aibom --name my-app --version 1.0 \
+  --requirements requirements.txt \
+  --model "clf:1.0:hf:<sha256>:apache-2.0" -o aibom.json
+```
+
 ---
 
 ## 🧰 Module reference
@@ -516,11 +530,11 @@ license) · prefer `safetensors` over pickle · sign & verify data
 |--------|--------------|------------------|
 | `airte.mcp_audit` | AST taint-scan of MCP server code for injection sinks | `scan_path`, CLI `airte-scan` |
 | `airte.secure_mcp_server` | Hardened MCP server: authz, validation, confinement, sandbox, audit | `SecureToolRegistry`, `authorize`, `validate_path`, `validate_url`, `Sandbox` |
-| `airte.redteam` | 7 adversarial suites + pluggable harness with ASR scoring | `RedTeamHarness`, `Target`, CLI `airte-redteam` |
+| `airte.redteam` | 9 adversarial suites + harness + live targets (Anthropic/OpenAI/Bedrock) | `RedTeamHarness`, `build_target`, CLI `airte-redteam` |
 | `airte.guardrails` | Input/output/agent/RAG guardrails + token/cost budget | `scan_input`, `redact_secrets`, `AgentGuard`, `RAGContext`, `CostTracker` |
 | `airte.cloud` | Secrets (AWS/Azure/GCP), API-gateway policy, identity-aware proxy | `get_model_key`, `validate_request`, `IdentityAwareProxy` |
-| `airte.data_pipeline` | DLP detection/redaction, least-privilege access, data provenance | `DLPEngine`, `evaluate_access`, `SignedRecord` |
-| `airte.supply_chain` | Dependency-pinning + model-provenance auditing | `audit_requirements`, `audit_model_card` |
+| `airte.data_pipeline` | DLP (regex/Presidio), least-privilege access, data provenance | `DLPEngine`, `get_analyzer`, `evaluate_access`, `SignedRecord` |
+| `airte.supply_chain` | Dependency-pinning + model-provenance auditing + CycloneDX AI-BOM | `audit_requirements`, `audit_model_card`, `build_aibom` |
 | `airte.atlas` | MITRE ATLAS TTP suite + OWASP LLM mapping | `build_atlas_suite`, `map_owasp_to_atlas` |
 
 ---
@@ -553,7 +567,7 @@ See [`examples/`](examples) for runnable scripts: `audit_mcp_server.py`,
 ## 🧪 Testing & CI
 
 ```bash
-PYTHONPATH=src python -m pytest -q     # 33 tests, no network, no API keys needed
+PYTHONPATH=src python -m pytest -q     # 42 tests, no network, no API keys needed
 make scan                              # MCP scanner on the vulnerable example
 make redteam                           # red-team harness
 ```
@@ -586,11 +600,15 @@ Every section above links to a deep-dive document, available as Markdown and PDF
 
 ## 🗺️ Roadmap
 
-- Expand ATLAS coverage to additional tactics (Reconnaissance, ML Attack Staging).
-- Plug live models into `examples/run_redteam.py` (`LiveAnthropicTarget`) and add
-  OpenAI/Bedrock targets.
-- Add a CycloneDX **AI-BOM** exporter to the supply-chain auditor.
-- Optional ML-backed PII detection (Presidio) behind the DLP interface.
+Recently shipped: ✅ ATLAS Reconnaissance & ML Attack Staging tactics · ✅ live
+Anthropic/OpenAI/Bedrock red-team targets · ✅ CycloneDX AI-BOM exporter · ✅
+optional Presidio-backed PII detection.
+
+Next up:
+- Add Azure OpenAI and Google Vertex targets.
+- Sub-technique granularity for ATLAS prompt-injection (direct/indirect) cases.
+- SARIF output from the MCP scanner for code-scanning integration.
+- A `pre-commit` hook bundling the scanner + supply-chain audit.
 
 ---
 

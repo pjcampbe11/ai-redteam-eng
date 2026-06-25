@@ -18,7 +18,7 @@ test and which you don't.
 ## ATLAS techniques covered in this repo
 
 `airte.atlas.ttp_suite` maps techniques to runnable `airte.redteam` cases and to the
-OWASP LLM Top 10:
+OWASP LLM Top 10. Coverage spans eight tactics from Reconnaissance through Impact:
 
 | ATLAS ID    | Technique                        | Tactic              | OWASP | Cases |
 |-------------|----------------------------------|---------------------|-------|-------|
@@ -30,6 +30,8 @@ OWASP LLM Top 10:
 | AML.T0048   | Model Inversion Harm             | Impact              | LLM02 | yes   |
 | AML.T0029   | Denial of ML Service             | Impact              | LLM10 | yes   |
 | AML.T0018   | Manipulate AI Model (supply)     | Persistence         | LLM03 | yes   |
+| AML.T0040   | Discover AI Model / Tooling      | Reconnaissance      | LLM07 | yes   |
+| AML.T0043   | Craft Adversarial Data / Stage   | ML Attack Staging   | LLM01 | yes   |
 
 > Verify exact ATLAS IDs/names against the current matrix at atlas.mitre.org when
 > reporting — the framework evolves, and sub-technique IDs (e.g. AML.T0051.000

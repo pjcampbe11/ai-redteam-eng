@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 
 from ..redteam import (prompt_injection, jailbreak, data_poisoning,
                        model_extraction, unbounded_consumption,
-                       supply_chain, model_inversion)
+                       supply_chain, model_inversion, reconnaissance,
+                       attack_staging)
 from ..redteam.harness import AttackCase
 
 
@@ -62,6 +63,16 @@ ATLAS_TTPS: list[ATLASTechnique] = [
         "AML.T0018", "Manipulate AI Model (supply chain)", "Persistence",
         "LLM03", "Backdooring a model artifact or dependency in the supply chain.",
         supply_chain.cases),
+    ATLASTechnique(
+        "AML.T0040", "Discover AI Model / Tooling", "Reconnaissance",
+        "LLM07", "Fingerprinting the model, enumerating tools/plugins and "
+        "guardrails to plan an attack.",
+        reconnaissance.cases),
+    ATLASTechnique(
+        "AML.T0043", "Craft Adversarial Data / Stage Attack", "ML Attack Staging",
+        "LLM01", "Crafting/verifying adversarial inputs, building a proxy model, "
+        "or embedding a latent trigger before execution.",
+        attack_staging.cases),
 ]
 
 

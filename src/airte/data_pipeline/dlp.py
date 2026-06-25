@@ -61,8 +61,16 @@ class DLPFinding:
 class DLPEngine:
     redaction: str = "[REDACTED:{label}]"
     findings: list[DLPFinding] = field(default_factory=list)
+    # optional pluggable analyzer (e.g. Presidio); None => built-in regex detectors
+    analyzer: object | None = None
 
     def scan(self, text: str) -> list[DLPFinding]:
+        if self.analyzer is not None:
+            self.findings = [
+                DLPFinding(sp.label, str(sp.classification), sp.start, sp.end,
+                           text[sp.start:sp.start + 4] + "…")
+                for sp in self.analyzer.analyze(text)]
+            return self.findings
         out: list[DLPFinding] = []
         for label, pat, cls in _DETECTORS:
             for m in pat.finditer(text):

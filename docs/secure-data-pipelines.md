@@ -17,9 +17,12 @@ eng.max_classification("SSN 123-45-6789")      # -> Classification.RESTRICTED
 eng.redact("contact a@b.com, AKIA....")         # -> "[REDACTED:email], [REDACTED:aws_key]"
 ```
 
-The engine ships high-precision detectors (SSN, credit card with Luhn check, email,
-phone, IPv4, AWS keys, API keys) and a 4-level classification (PUBLIC → INTERNAL →
-CONFIDENTIAL → RESTRICTED). Use it at two choke points: **ingest** (gate what enters
+The engine ships high-precision regex detectors (SSN, credit card with Luhn check,
+email, phone, IPv4, AWS keys, API keys) and a 4-level classification (PUBLIC →
+INTERNAL → CONFIDENTIAL → RESTRICTED). For context-dependent PII that regex misses
+(names, locations), plug in the optional **Microsoft Presidio** analyzer behind the
+same interface: `DLPEngine(analyzer=get_analyzer("auto"))` uses Presidio if installed
+and transparently falls back to regex otherwise. Use it at two choke points: **ingest** (gate what enters
 a RAG index / fine-tune set) and **egress** (redact model answers and tool inputs).
 
 ## Confidentiality boundaries
